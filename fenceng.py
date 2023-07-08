@@ -88,8 +88,11 @@ def  kmeansPlot(tfidf, num):
     #聚类评估指标，距离越小说明簇分的越好
     print("计算簇中某一点到簇中距离的和: \n",clf.inertia_)
     print("每个点所属簇标签: \n",clf.labels_)
+    return None
 
-    # 聚类结果可视化
+def view(num, tfidf):
+    tfidf_array = tfidf.toarray()
+     # 聚类结果可视化
     colors_list = ['teal', 'skyblue', 'tomato', 'black']
     labels_list = ['0', '1', '2', '3']
     markers_list = ['o', '*', 'D', '1']  # 分别为圆、星型、菱形
@@ -102,12 +105,12 @@ def  kmeansPlot(tfidf, num):
          plt.scatter(tfidf_array[i], tfidf_array[i], c=colors_list[i],
             label=labels_list[i], marker=markers_list[i])
     plt.show()
-
-    return None
-
+    return  None
 
 if __name__ == "__main__":
     data=pd.read_csv("E:/专利/weibo-search/weibo/spiders/结果文件/%23俄乌战争%23/%23俄乌战争%23.csv")
+    num = 4
     #计算tf-idf权值
     tfidf = compute(cleandata(data['用户昵称']))
-    kmeansPlot(tfidf, num=4)
+    kmeansPlot(tfidf, num)
+    view(num, tfidf)
