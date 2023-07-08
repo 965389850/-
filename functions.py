@@ -168,7 +168,16 @@ def clean_and_plot(data, pic_out_path,print_weight):
     return word,tfidf_matrix
 
 def mykmeans(data, tfidf_matrix, n_clusters=5):
-    '''聚类'''
+    '''
+    聚类
+    输入：
+        data: 原始数据列  注意！！：是列
+        tfidf_matrix: 用于聚类的数据矩阵
+        n_clusters: 聚类类别个数
+    输出:
+        result: 数据以及聚类标签整合后的表格
+        clf.inertia_: 簇的某一点到簇中心距离的和
+    '''
     from sklearn.cluster import KMeans
     clf = KMeans(n_clusters)
     result_list = clf.fit(tfidf_matrix)
@@ -177,4 +186,22 @@ def mykmeans(data, tfidf_matrix, n_clusters=5):
     result = pd.DataFrame(())
     result["data"] = data
     result["label"] = result_list
-    return result
+
+    print("输出中心点：\n",clf.cluster_centers_)#每一类的中心点
+    print("计算簇中某一点到簇中距离的和: \n",clf.inertia_)
+    print("每个点所属簇标签: \n",clf.labels_)
+
+    # 聚类结果可视化
+    colors_list = ['teal', 'skyblue', 'tomato', 'black', 'green']
+    labels_list = ['0', '1', '2', '3', '4']
+    markers_list = ['o', '*', 'D', '1', '2']  # 分别为圆、星型、菱形
+
+    pltdata = pd.DataFrame(())
+    pltdata['data'] = tfidf_matrix
+    pltdata['label'] = result_list
+    for i in range(n_clusters):
+        plt.scatter(pltdata["data"][i], pltdata["label"][i], c=colors_list[i],
+        label=labels_list[i], marker=markers_list[i])
+    plt.show()
+
+    return result, clf.inertia_
