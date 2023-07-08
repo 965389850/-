@@ -20,7 +20,7 @@ word, clean_data = clean_and_plot(data['用户昵称'], './picture/fulldata.png'
 plt.show()
 
 # 第一层5分类
-kmeans_result = mykmeans(data['用户昵称'], clean_data, n_clusters=5)
+kmeans_result, evaluation = mykmeans(data['用户昵称'], clean_data, n_clusters=5)
 
 print("画图")
 plot_bar_normal(kmeans_result["label"].value_counts().values,kmeans_result["label"].value_counts().index)
@@ -35,7 +35,7 @@ kmean2_clean_data = []
 for i in range(len(result)):
     kmeanword, clean_data = clean_and_plot(result[i]['data'], './picture/kmean1_'+str(i)+'.png', False)
     plt.show()
-    kmeans_result = mykmeans(result[i]['data'], clean_data, n_clusters=5)
+    kmeans_result, evaluation  = mykmeans(result[i]['data'], clean_data, n_clusters=5)
 
     print("画图")
     plot_bar_normal(kmeans_result["label"].value_counts().values,kmeans_result["label"].value_counts().index)
