@@ -195,12 +195,23 @@ def mykmeans(data, tfidf_matrix, n_clusters=5):
     colors_list = ['teal', 'skyblue', 'tomato', 'black', 'green']
     labels_list = ['0', '1', '2', '3', '4']
     markers_list = ['o', '*', 'D', '1', '2']  # 分别为圆、星型、菱形
-
-    pltdata = pd.DataFrame(())
-    pltdata['data'] = tfidf_matrix
-    pltdata['label'] = result_list
+    # 画中心点
     for i in range(n_clusters):
-        plt.scatter(pltdata["data"][i], pltdata["label"][i], c=colors_list[i],
+        plt.scatter(clf.cluster_centers_[i], clf.cluster_centers_[i], c=colors_list[i],
+            label=labels_list[i], marker=markers_list[i])
+    pltdata = pd.DataFrame((tfidf_matrix))
+    pltdata = pd.DataFrame((tfidf_matrix))
+    
+    from sklearn.decomposition import PCA
+    pca = PCA(n_components=2)
+
+    pca.fit(pltdata)
+    newX = pd.DataFrame((pca.fit_transform(pltdata)))
+    print(newX)
+    newX['label'] = result_list
+    slplitdata = splitdata(newX)
+    for i in range(n_clusters):
+        plt.scatter(slplitdata[i][0], slplitdata[i][1], c=colors_list[i],
         label=labels_list[i], marker=markers_list[i])
     plt.show()
 
