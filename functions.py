@@ -64,7 +64,7 @@ def Cloud_words(words, path):
         # 引入字体
         # mask = np.array(Image.open('love.png'))
         # image_colors = ImageColorGenerator(mask)
-        #从文本中生成词云图
+        # 从文本中生成词云图
         cloud = wc.WordCloud(
                             font_path="/System/Library/fonts/PingFang.ttc",#设置字体 
                             background_color='white', # 背景色为白色
@@ -179,29 +179,87 @@ def mykmeans(data, tfidf_matrix, n_clusters=5):
         clf.inertia_: 簇的某一点到簇中心距离的和
     '''
     from sklearn.cluster import KMeans
+    import warnings
+    warnings.filterwarnings('ignore', category=FutureWarning)
+
     clf = KMeans(n_clusters)
-    result_list = clf.fit(tfidf_matrix)
-    result_list  = list(clf.predict(tfidf_matrix))
+    result_list = clf.fit(tfidf_matrix).predict(tfidf_matrix)
+    # print(result_list)
+
+    from sklearn.metrics import silhouette_score,calinski_harabasz_score 
+    
+    calinski_harabasz = [calinski_harabasz_score(tfidf_matrix, result_list)] # 指标越大越好
+    # print("评价指标ch：\n",calinski_harabasz)
+    #计算轮廓系数
+    silhouette_avg = [silhouette_score(tfidf_matrix, result_list)]
+    # print("聚类模型轮廓系数为：", silhouette_avg)
+
+    evaluation = pd.DataFrame(())
+    evaluation['calinski_harabasz_score'] = calinski_harabasz
+    evaluation['silhouette_score'] = silhouette_avg
+
+    result_list  = list(result_list)
 
     result = pd.DataFrame(())
     result["data"] = data
     result["label"] = result_list
 
-    print("输出中心点：\n",clf.cluster_centers_)#每一类的中心点
-    print("计算簇中某一点到簇中距离的和: \n",clf.inertia_)
-    print("每个点所属簇标签: \n",clf.labels_)
+    # print("输出中心点：\n",clf.cluster_centers_)#每一类的中心点
+    # print("计算簇中某一点到簇中距离的和: \n",clf.inertia_)
+    # print("每个点所属簇标签: \n",clf.labels_)
 
+
+
+    return result, evaluation
+
+def plotkmeans(tfidf_matrix, result_list, n_clusters):
     # 聚类结果可视化
     colors_list = ['teal', 'skyblue', 'tomato', 'black', 'green']
-    labels_list = ['0', '1', '2', '3', '4']
+    labels_list = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
     markers_list = ['o', '*', 'D', '1', '2']  # 分别为圆、星型、菱形
 
-    pltdata = pd.DataFrame(())
-    pltdata['data'] = tfidf_matrix
-    pltdata['label'] = result_list
+    pltdata = pd.DataFrame((tfidf_matrix))
+    pltdata = pd.DataFrame((tfidf_matrix))
+
+    from sklearn.decomposition import PCA
+    pca = PCA(n_components=2)
+
+    pca.fit(pltdata)
+    newX = pd.DataFrame((pca.fit_transform(pltdata)))
+    print(newX)
+    newX['label'] = result_list
+    slplitdata = splitdata(newX)
     for i in range(n_clusters):
-        plt.scatter(pltdata["data"][i], pltdata["label"][i], c=colors_list[i],
+        plt.scatter(slplitdata[i][0], slplitdata[i][1], c=colors_list[i],
         label=labels_list[i], marker=markers_list[i])
     plt.show()
 
-    return result, clf.inertia_
+def plotlinechart(data):
+    from matplotlib.pyplot import rcParams 
+    import matplotlib.dates as mdate
+    import numpy as np
+    # 防止中文乱码
+    # rcParams['font.sans-serif'] = 'kaiti'
+    
+    # 生成一个时间序列 
+    # time =pd.to_datetime(np.arange(0,11), unit='D',
+    #                 origin=pd.Timestamp('2023-07-01'))
+    
+    # 生成数据
+    # data = np.random.randint(0,1,size=11)
+
+
+    # 创建一个画布
+    fig = plt.figure(figsize=(12,9))
+    # 在画布上添加一个子视图
+    ax = plt.subplot(111)
+
+    # 画折线
+    # ax.plot(data['n_clusters'],data['calinski_harabasz_score'],color='r')
+    ax.plot(data['n_clusters'],data['silhouette_score'],color='b')
+    # 设置标题
+    ax.set_title('kmeans n_clusters and evaluation')
+    # 设置 x y 轴名称
+    ax.set_xlabel('n_clusters',fontsize=20)
+    ax.set_ylabel('evaluation',fontsize=20)
+    plt.show()
