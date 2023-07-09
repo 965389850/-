@@ -9,7 +9,9 @@ from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
 import functools
 import numpy as np
-
+from snownlp import SnowNLP
+from snownlp import sentiment
+import csv
 
 # 清洗文本
 def clearTxt(line:str):
@@ -50,6 +52,37 @@ def cleandata(data):
     clean_data = [sent2word(item) for item in clean_data]
     return clean_data
 
+def emotion(words):
+# 评论情感分析
+    # items=words.astype(str).tolist()
+    # print(items)
+ 
+    D=[]
+    for i in range(len(words)):
+        print(words[i])
+        s=SnowNLP(words[i])
+        t=s.sentiments
+        print(t)
+        a=[words[i],t]
+        D.append(a)
+    print(D)
+    with open('emotion.csv','a',encoding='utf-8-sig',newline='')as f1:
+        write=csv.writer(f1)
+        write.writerows(D)
+    # print("s = ", s)
+    # print("s类型", type(s))
+    # print("1、中文分词:\n",s.words)   
+    # print("2、词性标注:\n",s.tags)
+    # print("3、情感倾向分数:\n",s.sentiments)
+    # print("4、转换拼音:\n",s.pinyin)
+    # print("5、输出前4个关键词:\n",s.keywords(4))
+    # print("6、输出关键（中心）句:\n",s.summary(1))
+    # print("7.1、输出tf:\n",s.tf)
+    # print("7.2、输出idf:\n",s.idf)
+    # print("8、繁简体转换:\n",s.han)
+    return None
+
+#计算tf-idf权值
 def compute(clean_data):
     # 将文本中的词语转换为词频矩阵，矩阵元素a[i][j] 表示j词在i类文本下的词频
     vectorizer = CountVectorizer()
@@ -90,9 +123,9 @@ def  kmeansPlot(tfidf, num):
     print("每个点所属簇标签: \n",clf.labels_)
     return None
 
+# 聚类结果可视化
 def view(num, tfidf):
     tfidf_array = tfidf.toarray()
-     # 聚类结果可视化
     colors_list = ['teal', 'skyblue', 'tomato', 'black']
     labels_list = ['0', '1', '2', '3']
     markers_list = ['o', '*', 'D', '1']  # 分别为圆、星型、菱形
@@ -108,9 +141,12 @@ def view(num, tfidf):
     return  None
 
 if __name__ == "__main__":
-    data=pd.read_csv("E:/专利/weibo-search/weibo/spiders/结果文件/%23俄乌战争%23/%23俄乌战争%23.csv")
+    data=pd.read_csv("%23俄乌战争%23.csv")
     num = 4
+    # words = cleandata(data['用户昵称'])
+    # list = list(data['用户昵称'])
+    emotion(data['用户昵称'])
     #计算tf-idf权值
-    tfidf = compute(cleandata(data['用户昵称']))
-    kmeansPlot(tfidf, num)
-    view(num, tfidf)
+    # tfidf = compute(cleandata(data['用户昵称']))
+    # kmeansPlot(tfidf, num)
+    # view(num, tfidf)
