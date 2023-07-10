@@ -134,28 +134,28 @@ def splitdata(kmeans_result):
     return splitdata
 
 
-def clean_and_plot(data, pic_out_path,print_weight):
+def clean_and_plot(data, pic_out_path,print_weight:bool):
     '''
     输入文本信息，以及云图输出路径；输出词频前10的词和处理后的用于聚类的数据
     '''
     clean_data = [item for item in data]
     # 清洗文本
-    print("清洗文本")
+    # print("清洗文本")
     clean_data = [clearTxt(item) for item in clean_data]
     #文本切割
-    print("文本切割")
+    # print("文本切割")
     clean_data = [sent2word(item) for item in clean_data]
     Cloud_words(','.join(clean_data), pic_out_path)
     vectorizer = CountVectorizer()
     a = vectorizer.fit_transform(clean_data)
     x = vectorizer.get_feature_names_out()
-    print('输出词袋内容：\n',x)
+    # print('输出词袋内容：\n',x)
     word = sorted(vectorizer.vocabulary_.items(), key=lambda x: x[1], reverse=True)[:10]
     print('输出词频前十的词：\n',word)
 
     tf_idf_transformer = TfidfTransformer()
     tfidf = tf_idf_transformer.fit_transform(a)
-    print("权重矩阵\n",tfidf)
+    # print("权重矩阵\n",tfidf)
     tfidf_matrix = tfidf.toarray()
 
     if print_weight == True:

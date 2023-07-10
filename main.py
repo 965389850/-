@@ -22,13 +22,20 @@ plt.show()
 
 evaluations = pd.DataFrame((),columns=['n_clusters','calinski_harabasz_score', 'silhouette_score'])
 # 第一层5分类
-for i in range(2,100):
+for i in range(2,10):
     kmeans_result, evaluation = mykmeans(data['用户昵称'], clean_data, n_clusters=i)
     evaluation['n_clusters'] = [i]
     evaluations = pd.concat([evaluations ,evaluation])
     print("n_clusters=%d, calinski_harabasz_score=%f, silhouette_score%f" % (i,evaluation['calinski_harabasz_score'],evaluation['silhouette_score']))
 
 plotlinechart(evaluations)
+
+n_clusters = int(input("请输入聚类类别数："))
+kmeans_result, evaluation = mykmeans(data['用户昵称'], clean_data, n_clusters)
+print("按标签拆分数据集")
+result = splitdata(kmeans_result)
+for i in range(n_clusters):
+    word, clean_data = clean_and_plot(result[i]['data'], ' ', False)
 
 
 # print("画图")
