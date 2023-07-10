@@ -63,10 +63,10 @@ def emotion(words, gettime):
         s=SnowNLP(words[i])
         k=s.summary(1)
         t=s.sentiments
-        print(t)
+        # print(t)
         a=[gettime[i],k,t]
         D.append(a)
-    print(D)
+    # print(D)
     with open('emotion.csv','a',encoding='utf-8-sig',newline='')as f1:
         write=csv.writer(f1)
         write.writerows(D)
@@ -84,7 +84,6 @@ def emotion(words, gettime):
     # print(data1)
     df = {'发布时间':data1.index,'情感分数':data1.values}
     DF = pd.DataFrame(df)
-    print(DF)
 
     rcParams['font.sans-serif'] = 'kaiti'# 防止中文乱码
     warnings.filterwarnings('ignore', category=FutureWarning)
@@ -195,8 +194,9 @@ def emotionview(DF):
 
 #训练word2vec模型
 def train_word2vec(clean_data):
-    model=gensim.models.Word2Vec(clean_data,vector_size=100,window=10,min_count=2,sample=1e-3)
+    model=gensim.models.Word2Vec(clean_data,vector_size=300,window=8,min_count=10,sample=1e-3,workers=2)
     model.save("./word2vec")
+    model.wv.save_word2vec_format("./word2vec_format", binary=False)
     print("word2vec completed")
     return None
 
@@ -236,6 +236,7 @@ if __name__ == "__main__":
     data=pd.read_csv("%23俄乌战争%23.csv")
     num = 4
     clean_data = cleandata(data['用户昵称'])
+    # print("clean_data= \n",clean_data)
     train_word2vec(clean_data)
     DF = emotion(data['用户昵称'], data['点赞数'])
     # 计算tf-idf权值
