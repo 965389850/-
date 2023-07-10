@@ -10,6 +10,9 @@ import matplotlib.pyplot as plt
 from matplotlib.pyplot import rcParams 
 import matplotlib.dates as mdate
 import warnings
+import gensim
+import nltk
+import numpy as np
 # 清洗文本
 def clearTxt(line:str):
     if(line != ''):
@@ -48,6 +51,8 @@ def cleandata(data):
     clean_data = [clearTxt(item) for item in clean_data]
     clean_data = [sent2word(item) for item in clean_data]
     return clean_data
+
+
 
 #情感分析SnowNLP
 def emotion(words, gettime):
@@ -107,14 +112,23 @@ def compute(clean_data):
     tf_idf_transformer = TfidfTransformer()
     # 将文本转为词频矩阵并计算tf-idf
     tfidf = tf_idf_transformer.fit_transform(vectorizer.fit_transform(clean_data))
-    print( "词频矩阵为：\n",tfidf.toarray())
+    weight = tfidf.toarray()#权值
      # 获取词袋模型中的所有词语
     word = vectorizer.get_feature_names_out()
+    print( "词频矩阵为：\n",weight)
+    _w = np.nonzero(weight)
+    x1 = _w[0]
+    x2 = _w[1]
+    tfidf_dict = {}
+    for i in range(len(x1)):
+        index = x2[i]
+        tfidf_dict[word[index]] = weight[x1[i]][x2[i]]
+    
     x=vectorizer.fit_transform(clean_data)
     # print('输出词袋内容：\n',x)
     word = sorted(vectorizer.vocabulary_.items(), key=lambda x: x[1], reverse=True)[:10]
     # print('输出词频前十的词：\n',word)
-    return tfidf
+    return tfidf, tfidf_dict
 
 #文本词语转词频矩阵，文本数据做聚类
 def  kmeansPlot(tfidf, num):
@@ -179,13 +193,59 @@ def emotionview(DF):
     plt.show()
     return None
 
+#训练word2vec模型
+def train_word2vec(clean_data):
+    model=gensim.models.Word2Vec(clean_data,vector_size=100,window=10,min_count=2,sample=1e-3)
+    model.save("./word2vec")
+    print("word2vec completed")
+    return None
+
+#word2vec+tfidf
+def get_word2vec_with_tif(tfidf_dict):
+    word2vec_model = gensim.models.Word2Vec.load('./word2vec')
+    key = [word for word in word2vec_model.wv.key_to_index.keys()]
+    w_index = {}
+    vector = {}
+    embeddings_matrix = np.zeros((len(key) + 1, word2vec_model.vector_size))
+    for i in range(len(key)):
+        try:
+            word = key[i]
+            w_index[word] = i + 1
+            vector[word] = word2vec_model.wv[word]
+            if word in tfidf_dict.keys():
+                embeddings_matrix[i + 1] = word2vec_model.wv[word] * tfidf_dict[word]
+            else:
+                embeddings_matrix[i + 1] = word2vec_model.wv[word]
+        except:
+            embeddings_matrix[i + 1] = 0
+
+    return w_index, vector, embeddings_matrix
+
+#输出相近词
+def calculate_most_similar(self, word):
+    similar_words = self.wv.most_similar(word)
+    print(word)
+    for term in similar_words:
+        print("相近词为：\n",term[0], term[1])
+    return None
+
+
+
+
 if __name__ == "__main__":
     data=pd.read_csv("%23俄乌战争%23.csv")
     num = 4
+    clean_data = cleandata(data['用户昵称'])
+    train_word2vec(clean_data)
     DF = emotion(data['用户昵称'], data['点赞数'])
-    #计算tf-idf权值
-    tfidf = compute(cleandata(data['用户昵称']))
+    # 计算tf-idf权值
+    tfidf, tfidf_dict = compute(clean_data)
+    word_index, word_vector, embedding_matrix = get_word2vec_with_tif(tfidf_dict)
+    print("word_index: \n",word_index)
+    print("word_vector: \n",word_index)
+    print("embedding_matrix: \n",embedding_matrix)
+    model = gensim.models.Word2Vec.load('./word2vec')
+    calculate_most_similar(model, "军")
     kmeansPlot(tfidf, num)
     kmeansview(num, tfidf)
     emotionview(DF)
-#mua~
