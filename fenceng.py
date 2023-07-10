@@ -66,7 +66,7 @@ def emotion(words, gettime):
         write=csv.writer(f1)
         write.writerows(D)
 
-    #算出每天情感评分均值
+#算出每天情感评分均值
     data=pd.read_csv("1.csv",header=None,names=["发布时间","中心句","情感分数"])
     timedata = data['发布时间'].copy()
     time = []
@@ -81,12 +81,10 @@ def emotion(words, gettime):
     DF = pd.DataFrame(df)
     print(DF)
 
-    # 防止中文乱码
-    rcParams['font.sans-serif'] = 'kaiti'
+    rcParams['font.sans-serif'] = 'kaiti'# 防止中文乱码
     warnings.filterwarnings('ignore', category=FutureWarning)
     data=pd.read_csv("1.csv",header=None,names=["发布时间","中心句","情感分数"])
     timedata = data['发布时间'].copy()
-    time = []
     for i in range(len(data)):
         timedata[i]=timedata[i][:10]
     data['发布时间']=timedata
@@ -184,8 +182,7 @@ def emotionview(DF):
 if __name__ == "__main__":
     data=pd.read_csv("%23俄乌战争%23.csv")
     num = 4
-    gettime = data['点赞数']
-    DF = emotion(data['用户昵称'], gettime)
+    DF = emotion(data['用户昵称'], data['点赞数'])
     #计算tf-idf权值
     tfidf = compute(cleandata(data['用户昵称']))
     kmeansPlot(tfidf, num)
