@@ -1,25 +1,22 @@
 import pandas as pd
 import jieba
+from snownlp import SnowNLP
+import csv
 import re
-from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfTransformer
-import nltk
 from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
-import functools
-import numpy as np
-from snownlp import SnowNLP
-from snownlp import sentiment
-import csv
-
+from matplotlib.pyplot import rcParams 
+import matplotlib.dates as mdate
+import warnings
 # 清洗文本
 def clearTxt(line:str):
     if(line != ''):
         line = line.strip()
-        # 去除文本中的英文和数字
+        # 去除文本英文和数字
         line = re.sub("[a-zA-Z0-9]", "", line)
-        # 去除文本中的中文符号和英文符号
+        # 去除文本中文符号和英文符号
         line = re.sub("[\s+\.\!\/_,$%^*(+\"\'；：“”．]+|[+——！，。？?、~@#￥%……&*（）]+", "", line)
         return line
     return None
@@ -52,35 +49,57 @@ def cleandata(data):
     clean_data = [sent2word(item) for item in clean_data]
     return clean_data
 
-def emotion(words):
+#情感分析SnowNLP
+def emotion(words, gettime):
 # 评论情感分析
-    # items=words.astype(str).tolist()
-    # print(items)
- 
     D=[]
     for i in range(len(words)):
         print(words[i])
         s=SnowNLP(words[i])
+        k=s.summary(1)
         t=s.sentiments
         print(t)
-        a=[words[i],t]
+        a=[gettime[i],k,t]
         D.append(a)
     print(D)
     with open('emotion.csv','a',encoding='utf-8-sig',newline='')as f1:
         write=csv.writer(f1)
         write.writerows(D)
-    # print("s = ", s)
-    # print("s类型", type(s))
-    # print("1、中文分词:\n",s.words)   
-    # print("2、词性标注:\n",s.tags)
-    # print("3、情感倾向分数:\n",s.sentiments)
-    # print("4、转换拼音:\n",s.pinyin)
-    # print("5、输出前4个关键词:\n",s.keywords(4))
-    # print("6、输出关键（中心）句:\n",s.summary(1))
-    # print("7.1、输出tf:\n",s.tf)
-    # print("7.2、输出idf:\n",s.idf)
-    # print("8、繁简体转换:\n",s.han)
-    return None
+
+    #算出每天情感评分均值
+    data=pd.read_csv("1.csv",header=None,names=["发布时间","中心句","情感分数"])
+    timedata = data['发布时间'].copy()
+    time = []
+    for i in range(len(data)):
+        timedata[i]=timedata[i][:10]
+    data['发布时间']=timedata
+    # Convert the date to datetime64
+    timedatas = pd.to_datetime(timedata, format='%Y-%m-%d')
+    data1 = data['情感分数'].groupby(timedatas).mean()
+    # print(data1)
+    df = {'发布时间':data1.index,'情感分数':data1.values}
+    DF = pd.DataFrame(df)
+    print(DF)
+
+    # 防止中文乱码
+    rcParams['font.sans-serif'] = 'kaiti'
+    warnings.filterwarnings('ignore', category=FutureWarning)
+    data=pd.read_csv("1.csv",header=None,names=["发布时间","中心句","情感分数"])
+    timedata = data['发布时间'].copy()
+    time = []
+    for i in range(len(data)):
+        timedata[i]=timedata[i][:10]
+    data['发布时间']=timedata
+    # Convert the date to datetime64
+    timedatas = pd.to_datetime(timedata, format='%Y-%m-%d')
+    data1 = data['情感分数'].groupby(timedatas).mean()
+    # print(data1)
+    df = {'发布时间':data1.index,'情感分数':data1.values}
+    DF = pd.DataFrame(df)
+    print(DF)
+    print(DF['发布时间'])
+    print(DF['情感分数'])
+    return DF
 
 #计算tf-idf权值
 def compute(clean_data):
@@ -99,12 +118,10 @@ def compute(clean_data):
     # print('输出词频前十的词：\n',word)
     return tfidf
 
-
 #文本词语转词频矩阵，文本数据做聚类
 def  kmeansPlot(tfidf, num):
     tfidf_array = tfidf.toarray()
     # kmeans聚类
-    from sklearn.cluster import KMeans
     clf = KMeans(n_clusters=num, n_init='auto')
     result = clf.fit(tfidf_array)
 
@@ -124,7 +141,7 @@ def  kmeansPlot(tfidf, num):
     return None
 
 # 聚类结果可视化
-def view(num, tfidf):
+def kmeansview(num, tfidf):
     tfidf_array = tfidf.toarray()
     colors_list = ['teal', 'skyblue', 'tomato', 'black']
     labels_list = ['0', '1', '2', '3']
@@ -140,13 +157,37 @@ def view(num, tfidf):
     plt.show()
     return  None
 
+# 每天情感评分可视化
+def emotionview(DF):
+    # 导入轴数据
+    time =DF['发布时间']
+    data = DF['情感分数']
+    # 创建一个画布
+    fig = plt.figure(figsize=(12,9))
+    # 在画布上添加一个子视图
+    ax = plt.subplot(111)
+    # 这里很重要  需要将x轴的刻度 进行格式化
+    ax.xaxis.set_major_formatter(mdate.DateFormatter('%Y-%m-%d'))
+    # 为X轴添加刻度
+    plt.xticks(DF['发布时间'],rotation=45)
+    plt.yticks(DF['情感分数'],rotation=20)
+    # 画折线
+    ax.plot(time,data,color='r')
+    # 设置标题
+    ax.set_title('折线图示例')
+    # 设置 x y 轴名称
+    ax.set_xlabel('日期',fontsize=20)
+    ax.set_ylabel('情感',fontsize=20)
+    plt.show()
+    return None
+
 if __name__ == "__main__":
     data=pd.read_csv("%23俄乌战争%23.csv")
     num = 4
-    # words = cleandata(data['用户昵称'])
-    # list = list(data['用户昵称'])
-    emotion(data['用户昵称'])
+    gettime = data['点赞数']
+    DF = emotion(data['用户昵称'], gettime)
     #计算tf-idf权值
-    # tfidf = compute(cleandata(data['用户昵称']))
-    # kmeansPlot(tfidf, num)
-    # view(num, tfidf)
+    tfidf = compute(cleandata(data['用户昵称']))
+    kmeansPlot(tfidf, num)
+    kmeansview(num, tfidf)
+    emotionview(DF)
