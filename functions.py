@@ -145,7 +145,9 @@ def clean_and_plot(data, pic_out_path,print_weight:bool):
     #文本切割
     # print("文本切割")
     clean_data = [sent2word(item) for item in clean_data]
-    Cloud_words(','.join(clean_data), pic_out_path)
+    if pic_out_path != ' ':
+        print('画云图')
+        Cloud_words(','.join(clean_data), pic_out_path)
     vectorizer = CountVectorizer()
     a = vectorizer.fit_transform(clean_data)
     x = vectorizer.get_feature_names_out()
@@ -223,12 +225,13 @@ def plotkmeans(tfidf_matrix, result_list, n_clusters):
 
     from sklearn.decomposition import PCA
     pca = PCA(n_components=2)
-
     pca.fit(pltdata)
     newX = pd.DataFrame((pca.fit_transform(pltdata)))
     print(newX)
+
     newX['label'] = result_list
     slplitdata = splitdata(newX)
+
     for i in range(n_clusters):
         plt.scatter(slplitdata[i][0], slplitdata[i][1], c=colors_list[i],
         label=labels_list[i], marker=markers_list[i])

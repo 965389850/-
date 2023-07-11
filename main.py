@@ -35,7 +35,7 @@ kmeans_result, evaluation = mykmeans(data['用户昵称'], clean_data, n_cluster
 print("按标签拆分数据集")
 result = splitdata(kmeans_result)
 for i in range(n_clusters):
-    word, clean_data = clean_and_plot(result[i]['data'], ' ', False)
+    word, clean_data = clean_and_plot(result[i]['data'], 'showonly', False)
 
 
 # print("画图")
