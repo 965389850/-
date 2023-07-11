@@ -6,6 +6,7 @@ import re
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.cluster import KMeans
+from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import rcParams 
 import matplotlib.dates as mdate
@@ -61,7 +62,6 @@ def emotion(words, gettime):
 # 评论情感分析
     D=[]
     for i in range(len(words)):
-        print(words[i])
         s=SnowNLP(words[i])
         k=s.summary(1)
         t=s.sentiments
@@ -100,9 +100,9 @@ def emotion(words, gettime):
     # print(data1)
     df = {'发布时间':data1.index,'情感分数':data1.values}
     DF = pd.DataFrame(df)
-    print(DF)
-    print(DF['发布时间'])
-    print(DF['情感分数'])
+    # print(DF)
+    # print(DF['发布时间'])
+    # print(DF['情感分数'])
     return DF
 
 #计算tf-idf权值
@@ -132,18 +132,15 @@ def compute(clean_data):
     return tfidf, tfidf_dict
 
 #文本词语转词频矩阵，文本数据做聚类
-def  kmeansPlot(tfidf, num):
+def  kmeansPlot(data, tfidf, num):
     tfidf_array = tfidf.toarray()
     # kmeans聚类
     clf = KMeans(n_clusters=num, n_init='auto')
-    result = clf.fit(tfidf_array)
-
-    #预测聚类结果
-    y_pred = clf.predict(tfidf_array)
+   #预测聚类结果
+    result = clf.fit(tfidf_array).predict(tfidf_array)
     # tfidf_array = np.float64(tfidf_array)
-    result_list  = list(y_pred)
+    result_list  = list(result)
     print('预测聚类结果名单为：\n',result_list)
-
     #中心点
     # print(len(clf.cluster_centers_))#对于矩阵来说len是行
     print("输出中心点：\n",clf.cluster_centers_)#每一类的中心点
@@ -151,6 +148,11 @@ def  kmeansPlot(tfidf, num):
     #聚类评估指标，距离越小说明簇分的越好
     print("计算簇中某一点到簇中距离的和: \n",clf.inertia_)
     print("每个点所属簇标签: \n",clf.labels_)
+
+    k_result = pd.DataFrame(())
+    k_result["data"] = data
+    k_result["label"] = result_list
+    k_result.to_csv('./data/k_result.csv')
     return None
 
 # 聚类结果可视化
@@ -258,8 +260,44 @@ def calculate_most_similar(self, word):
         print("相近词为：\n",term[0], term[1])
     return None
 
+# 查看基于CBOW和skip_gram模型输入词的相近词
+def show_similar():
+    model_CBOW = Word2Vec.load('./word2vec_CBOW')
+    print("查看基于word2vec_CBOW模型的相近词")
+    calculate_most_similar(model_CBOW, "军")
+    
+    model_skip_gram = Word2Vec.load('./word2vec_skip_gram')
+    print("查看基于word2vec_skip_gram模型的相近词")
+    calculate_most_similar(model_skip_gram, "军")
+    return None
 
+# 划分训练集和测试集
+def devide():
+    df=pd.read_csv("./data/k_result.csv")
+    print("df = \n", df)
+    X = np.array([df["data"].map(total_vector)]).reshape(-1, 134)
+    y = np.array(df["label"])
+    print("x shape =", X.shape)
+    print("y shape =",y.shape)
+    # 首先将数据集划分为训练集和测试集，其中test_size表示测试集所占比例
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    # 然后将训练集划分为训练集和验证集，其中validation_size表示验证集所占比例
+    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.25, random_state=42)
+    print(X_train.shape)
+    print(y_train.shape)
+    print(X_test.shape)
+    print(y_test.shape)
+    return X_train, y_train, X_test, y_test
 
+def total_vector(words):
+    model = Word2Vec.load("./word2vec_skip_gram")
+    vec = np.zeros(300).reshape((1, 300))
+    for word in words:
+        try:
+            vec += model.wv[word].reshape((1, 300))
+        except KeyError:
+            continue
+    return vec
 
 if __name__ == "__main__":
     data=pd.read_csv("%23俄乌战争%23.csv")
@@ -272,18 +310,14 @@ if __name__ == "__main__":
     DF = emotion(data['用户昵称'], data['点赞数'])
     # 计算tf-idf权值
     tfidf, tfidf_dict = compute(clean_data)
+    # 训练word2vec_CBOW + tfidf加权词向量
     word_CBOW_index, word_CBOW_vector, embedding_matrix_CBOW = get_word2vec_CBOW_with_tif(tfidf_dict)
+    # 训练word2vec_skip_gram + tfidf加权词向量
     word_skip_gram_index, word_skip_gram_vector, embedding_matrix_skip_gram = get_word2vec_skip_gram_with_tif(tfidf_dict)
- 
-    print("word_CBOW_index: \n",word_CBOW_index)
-    print("word_CBOW_vector: \n",word_CBOW_vector)
-    print("embedding_matrix_CBOW: \n",embedding_matrix_CBOW)
-
-    print("word_skip_gram_index: \n",word_skip_gram_index)
-    print("word_skip_gram_vector: \n",word_skip_gram_vector)
-    print("embedding_matrix_skip_gram: \n",embedding_matrix_skip_gram)
-    model = Word2Vec.load('./word2vec')
-    calculate_most_similar(model, "军")
-    kmeansPlot(tfidf, num)
+   
+    kmeansPlot(clean_data, tfidf, num)
     kmeansview(num, tfidf)
     emotionview(DF)
+    # 查看基于CBOW和skip_gram模型输入词的相近词
+    show_similar()
+    # devide()
