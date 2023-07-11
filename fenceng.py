@@ -10,9 +10,11 @@ import matplotlib.pyplot as plt
 from matplotlib.pyplot import rcParams 
 import matplotlib.dates as mdate
 import warnings
-import gensim
+from gensim.models.word2vec import LineSentence
+from gensim.models import Word2Vec
 import nltk
 import numpy as np
+import multiprocessing #多进程模块
 # 清洗文本
 def clearTxt(line:str):
     if(line != ''):
@@ -192,36 +194,63 @@ def emotionview(DF):
     plt.show()
     return None
 
-#训练word2vec模型
-def train_word2vec(clean_data):
-    model=gensim.models.Word2Vec(clean_data,vector_size=300,window=8,min_count=10,sample=1e-3,workers=2)
-    model.save("./word2vec")
-    model.wv.save_word2vec_format("./word2vec_format", binary=False)
-    print("word2vec completed")
+# 训练word2vec_CBOW模型
+def train_word2vec_CBOW(clean_data):
+    model=Word2Vec(clean_data,vector_size=300,window=8,min_count=10,sample=1e-3, workers=multiprocessing.cpu_count(),sg=0)
+    model.save("./word2vec_CBOW")
+    model.wv.save_word2vec_format("./word2vec_CBOW_format", binary=False)
+    print("word2vec_CBOW completed")
     return None
 
-#word2vec+tfidf
-def get_word2vec_with_tif(tfidf_dict):
-    word2vec_model = gensim.models.Word2Vec.load('./word2vec')
-    key = [word for word in word2vec_model.wv.key_to_index.keys()]
-    w_index = {}
-    vector = {}
-    embeddings_matrix = np.zeros((len(key) + 1, word2vec_model.vector_size))
+# 训练word2vec_skip_gram模型
+def train_word2vec_skip_gram(clean_data):
+    model=Word2Vec(clean_data,vector_size=300,window=8,min_count=10,sample=1e-3, workers=multiprocessing.cpu_count(),sg=1)
+    model.save("./word2vec_skip_gram")
+    model.wv.save_word2vec_format("./word2vec_skip_gram_format", binary=False)
+    print("word2vec_skip_gram completed")
+    return None
+
+# word2vec_CBOW + tfidf加权训练词向量
+def get_word2vec_CBOW_with_tif(tfidf_dict):
+    word2vec_CBOW_model = Word2Vec.load('./word2vec_CBOW')
+    key = [word for word in word2vec_CBOW_model.wv.key_to_index.keys()]
+    w_CBOW_index = {}
+    CBOW_vector = {}
+    embeddings_matrix_CBOW = np.zeros((len(key) + 1, word2vec_CBOW_model.vector_size))
     for i in range(len(key)):
         try:
             word = key[i]
-            w_index[word] = i + 1
-            vector[word] = word2vec_model.wv[word]
+            w_CBOW_index[word] = i + 1
+            CBOW_vector[word] = word2vec_CBOW_model.wv[word]
             if word in tfidf_dict.keys():
-                embeddings_matrix[i + 1] = word2vec_model.wv[word] * tfidf_dict[word]
+                embeddings_matrix_CBOW[i + 1] = word2vec_CBOW_model.wv[word] * tfidf_dict[word]
             else:
-                embeddings_matrix[i + 1] = word2vec_model.wv[word]
+                embeddings_matrix_CBOW[i + 1] = word2vec_CBOW_model.wv[word]
         except:
-            embeddings_matrix[i + 1] = 0
+            embeddings_matrix_CBOW[i + 1] = 0
+    return w_CBOW_index, CBOW_vector, embeddings_matrix_CBOW
 
-    return w_index, vector, embeddings_matrix
+# word2vec_skip_gram + tfidf加权训练词向量
+def get_word2vec_skip_gram_with_tif(tfidf_dict):
+    word2vec_CBOW_model = Word2Vec.load('./word2vec_skip_gram')
+    key = [word for word in word2vec_CBOW_model.wv.key_to_index.keys()]
+    w_skip_gram_index = {}
+    skip_gram_vector = {}
+    embeddings_matrix_skip_gram = np.zeros((len(key) + 1, word2vec_CBOW_model.vector_size))
+    for i in range(len(key)):
+        try:
+            word = key[i]
+            w_skip_gram_index[word] = i + 1
+            skip_gram_vector[word] = word2vec_CBOW_model.wv[word]
+            if word in tfidf_dict.keys():
+                embeddings_matrix_skip_gram[i + 1] = word2vec_CBOW_model.wv[word] * tfidf_dict[word]
+            else:
+                embeddings_matrix_skip_gram[i + 1] = word2vec_CBOW_model.wv[word]
+        except:
+            embeddings_matrix_skip_gram[i + 1] = 0
+    return w_skip_gram_index, skip_gram_vector, embeddings_matrix_skip_gram
 
-#输出相近词
+# 输出相近词
 def calculate_most_similar(self, word):
     similar_words = self.wv.most_similar(word)
     print(word)
@@ -237,15 +266,23 @@ if __name__ == "__main__":
     num = 4
     clean_data = cleandata(data['用户昵称'])
     # print("clean_data= \n",clean_data)
-    train_word2vec(clean_data)
+    train_word2vec_CBOW(clean_data)
+    train_word2vec_skip_gram(clean_data)
+
     DF = emotion(data['用户昵称'], data['点赞数'])
     # 计算tf-idf权值
     tfidf, tfidf_dict = compute(clean_data)
-    word_index, word_vector, embedding_matrix = get_word2vec_with_tif(tfidf_dict)
-    print("word_index: \n",word_index)
-    print("word_vector: \n",word_index)
-    print("embedding_matrix: \n",embedding_matrix)
-    model = gensim.models.Word2Vec.load('./word2vec')
+    word_CBOW_index, word_CBOW_vector, embedding_matrix_CBOW = get_word2vec_CBOW_with_tif(tfidf_dict)
+    word_skip_gram_index, word_skip_gram_vector, embedding_matrix_skip_gram = get_word2vec_skip_gram_with_tif(tfidf_dict)
+ 
+    print("word_CBOW_index: \n",word_CBOW_index)
+    print("word_CBOW_vector: \n",word_CBOW_vector)
+    print("embedding_matrix_CBOW: \n",embedding_matrix_CBOW)
+
+    print("word_skip_gram_index: \n",word_skip_gram_index)
+    print("word_skip_gram_vector: \n",word_skip_gram_vector)
+    print("embedding_matrix_skip_gram: \n",embedding_matrix_skip_gram)
+    model = Word2Vec.load('./word2vec')
     calculate_most_similar(model, "军")
     kmeansPlot(tfidf, num)
     kmeansview(num, tfidf)
