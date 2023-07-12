@@ -219,6 +219,7 @@ def get_word2vec_CBOW_with_tif(tfidf_dict):
     w_CBOW_index = {}
     CBOW_vector = {}
     embeddings_matrix_CBOW = np.zeros((len(key) + 1, word2vec_CBOW_model.vector_size))
+    print(len(key))
     for i in range(len(key)):
         try:
             word = key[i]

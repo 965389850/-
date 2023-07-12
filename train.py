@@ -7,6 +7,7 @@ import pandas as pd
 
 data = pd.read_csv("smp2020dataset/train/usual_train.csv").astype(str)
 data.drop('数据编号', axis=1, inplace=True)
+data = data[data.情绪标签.isin(['happy', 'neutral', 'sad'])]
 
 word, tfidf_matrix = clean_and_plot(data['文本'], ' ', False)
 
